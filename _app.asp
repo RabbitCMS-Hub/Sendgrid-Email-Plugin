@@ -283,7 +283,7 @@ Class Sendgrid_Email_Plugin
 		'-----------------------------------------------------------------------------------
 		'*/
 		If SENDGRID_ACTIVE = 1 Then 
-			PLUGIN_HOOK "engine:email", PLUGIN_FOLDER_NAME
+			PLUGIN_HOOK "engine:email", This()
 		End If
 
 		If PLUGIN_AUTOLOAD_AT("WEB") = True Then 			
