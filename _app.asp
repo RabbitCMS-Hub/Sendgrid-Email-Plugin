@@ -45,67 +45,19 @@ Class Sendgrid_Email_Plugin
 	'*/
 	Public Property Get class_register()
 		DebugTimer ""& PLUGIN_CODE &" class_register() Start"
-		'/*
-		'---------------------------------------------------------------
-		' Check Register
-		'---------------------------------------------------------------
-		'*/
-		' If CheckSettings("PLUGIN:"& PLUGIN_CODE &"") = True Then 
-		' 	DebugTimer ""& PLUGIN_CODE &" class_registered"
-		' 	Exit Property
-		' End If
-		' '/*
-		' '---------------------------------------------------------------
-		' ' Plugin Database
-		' '---------------------------------------------------------------
-		' '*/
-		' Dim PluginTableName
-		' 	PluginTableName = "tbl_plugin_" & PLUGIN_DB_NAME
-    	
-  '   	If TableExist(PluginTableName) = False Then
-		' 	DebugTimer ""& PLUGIN_CODE &" table creating"
-    		
-  '   		Conn.Execute("SET NAMES utf8mb4;") 
-  '   		Conn.Execute("SET FOREIGN_KEY_CHECKS = 0;") 
-    		
-  '   		Conn.Execute("DROP TABLE IF EXISTS `"& PluginTableName &"`")
 
-  '   		q="CREATE TABLE `"& PluginTableName &"` ( "
-  '   		q=q+"  `ID` int(11) NOT NULL AUTO_INCREMENT, "
-  '   		q=q+"  `FILENAME` varchar(255) DEFAULT NULL, "
-  '   		q=q+"  `FULL_PATH` varchar(255) DEFAULT NULL, "
-  '   		q=q+"  `COMPRESS_DATE` datetime DEFAULT NULL, "
-  '   		q=q+"  `COMPRESS_RATIO` double(255,0) DEFAULT NULL, "
-  '   		q=q+"  `ORIGINAL_FILE_SIZE` bigint(20) DEFAULT 0, "
-  '   		q=q+"  `COMPRESSED_FILE_SIZE` bigint(20) DEFAULT 0, "
-  '   		q=q+"  `EARNED_SIZE` bigint(20) DEFAULT 0, "
-  '   		q=q+"  `ORIGINAL_PROTECTED` int(1) DEFAULT 0, "
-  '   		q=q+"  PRIMARY KEY (`ID`), "
-  '   		q=q+"  KEY `IND1` (`FILENAME`) "
-  '   		q=q+") ENGINE=MyISAM DEFAULT CHARSET=utf8; "
-		' 	Conn.Execute(q)
-
-  '   		Conn.Execute("SET FOREIGN_KEY_CHECKS = 1;") 
-
-		' 	' Create Log
-		' 	'------------------------------
-  '   		Call PanelLog(""& PLUGIN_CODE &" için database tablosu oluşturuldu", 0, ""& PLUGIN_CODE &"", 0)
-
-		' 	' Register Settings
-		' 	'------------------------------
-		' 	DebugTimer ""& PLUGIN_CODE &" class_register() End"
-  '   	End If
 		'/*
 		'---------------------------------------------------------------
 		' Plugin Settings
 		'---------------------------------------------------------------
 		'*/
-		a=GetSettings("PLUGIN:"& PLUGIN_CODE &"", PLUGIN_CODE&"_")
-		a=GetSettings(""&PLUGIN_CODE&"_CLASS", "Sendgrid_Email_Plugin")
-		a=GetSettings(""&PLUGIN_CODE&"_REGISTERED", ""& Now() &"")
-		a=GetSettings(""&PLUGIN_CODE&"_FOLDER", PLUGIN_FOLDER_NAME)
-		a=GetSettings(""&PLUGIN_CODE&"_CODENO", "332")
-		a=GetSettings(""&PLUGIN_CODE&"_PLUGIN_NAME", PLUGIN_NAME)
+		SetSettings "PLUGIN:"& PLUGIN_CODE 		, PLUGIN_CODE &"_"
+		SetSettings PLUGIN_CODE &"_ACTIVE" 		, 0
+		SetSettings PLUGIN_CODE &"_CLASS" 		, "Sendgrid_Email_Plugin"
+		SetSettings PLUGIN_CODE &"_REGISTERED" 	, Cstr( Now() )
+		SetSettings PLUGIN_CODE &"_FOLDER" 		, PLUGIN_FOLDER_NAME
+		SetSettings PLUGIN_CODE &"_CODENO" 		, 332
+		SetSettings PLUGIN_CODE &"_PLUGIN_NAME" , PLUGIN_NAME
 		'/*
 		'---------------------------------------------------------------
 		' Register Settings
@@ -285,7 +237,6 @@ Class Sendgrid_Email_Plugin
 		If SENDGRID_ACTIVE = 1 Then 
 			PLUGIN_HOOK "engine:email", This()
 		End If
-
 		If PLUGIN_AUTOLOAD_AT("WEB") = True Then 			
 			' Cms.BodyData = Init()
 			' Cms.FooterData = "<add-footer-html>Hello World!</add-footer-html>"
@@ -385,10 +336,27 @@ Class Sendgrid_Email_Plugin
 	        JSON_DATA = oJSON.JSONoutput()
 	    Set oJSON = Nothing
 
-	    Dim SendResult
-	    	SendResult = XMLHttpRequest(SENDGRID_API_SEND_URL, "POST", JSON_DATA, "Bearer", SENDGRID_API_KEY, "application/json")
+		Set HTTPRequest = New HTTPRequestHelper
+		    HTTPRequest.CorsProxy   = False
+		    HTTPRequest.Method      = "POST"
+		    HTTPRequest.ContentType = "application/json"
+		    HTTPRequest.Auth        = "Authorization" 
+		    HTTPRequest.AuthValue   = "Bearer "& SENDGRID_API_KEY &""
+		    HTTPRequest.Url         = SENDGRID_API_SEND_URL
+		    HTTPRequest.Data        = JSON_DATA
+		    HTTPRequest.Send()
 
-	    SendEmail = SendResult
+		    Dim Results, Status
+		        Status      = HTTPRequest.Status() 
+		        Results     = HTTPRequest.Result()
+		        ' CorsStatus  = HTTPRequest.CorsStatus()
+
+		    SendEmail = Array(Status, Results)
+		Set HTTPRequest = Nothing
+	    ' Dim SendResult
+	    ' '	SendResult = XMLHttpRequest(SENDGRID_API_SEND_URL, "POST", JSON_DATA, "Bearer", SENDGRID_API_KEY, "application/json")
+
+	    ' SendEmail = SendResult
 	End Property
 	'/*
 	'---------------------------------------------------------------
